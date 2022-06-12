@@ -9,8 +9,28 @@ MAINTAINER docker@intrepid.de
 ENV VERSION <<PHPMYADMINVERSION>>
 ENV URL https://files.phpmyadmin.net/phpMyAdmin/${VERSION}/phpMyAdmin-${VERSION}-all-languages.tar.gz
 
+# Architecture depending ENV PHP_VERSION provided by Jenkinsfile
+# <<ENV>>
+
 # Install dependencies
-RUN apk add --no-cache php7-session php7-mysqli php7-mbstring php7-xml php7-gd php7-zip php7-bz2 php7-openssl php7-curl php7-opcache php7-json php7-ctype nginx php7-fpm php7-iconv supervisor bash
+RUN apk add --no-cache \
+    ${PHP_VERSION}-session \
+    ${PHP_VERSION}-mysqli \
+    ${PHP_VERSION}-mbstring \
+    ${PHP_VERSION}-xml \
+    ${PHP_VERSION}-gd \
+    ${PHP_VERSION}-zip \
+    ${PHP_VERSION}-bz2 \
+    ${PHP_VERSION}-openssl \
+    ${PHP_VERSION}-curl \
+    ${PHP_VERSION}-opcache \
+    ${PHP_VERSION}-json \
+    ${PHP_VERSION}-ctype \
+    ${PHP_VERSION}-fpm \
+    ${PHP_VERSION}-iconv \
+    nginx \
+    supervisor \
+    bash
 
 # Include keyring to verify download
 ADD https://files.phpmyadmin.net/phpmyadmin.keyring /
@@ -37,11 +57,13 @@ RUN set -x \
     && find /www -type f -exec chmod 640 {} \;
 # Add directory for sessions to allow session persistence
 RUN mkdir /sessions
+
 # add health.sh script
 COPY health.sh /
 # ENV HEALTH_ENABLE=1
 ENV HEALTH_PORT=80
 HEALTHCHECK --start-period=1m --interval=3m --timeout=10s CMD /health.sh
+
 # We expose phpMyAdmin on port 80
 EXPOSE 80
 ENTRYPOINT [ "/run.sh", "phpmyadmin" ]
