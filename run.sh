@@ -1,25 +1,22 @@
-#!/bin/bash
 
-if [ ! -f /etc/phpmyadmin/config.secret.inc.php ] ; then
-    cat > /etc/phpmyadmin/config.secret.inc.php <<EOT
+#!/bin/bash
+if [[ "$1" == apache2* ]] || [ "$1" == php-fpm ]; then
+
+    if [ ! -f /etc/phpmyadmin/config.secret.inc.php ]; then
+        cat > /etc/phpmyadmin/config.secret.inc.php <<EOT
 <?php
 \$cfg['blowfish_secret'] = '$(tr -dc 'a-zA-Z0-9~!@#$%^&*_()+}{?></";.,[]=-' < /dev/urandom | fold -w 32 | head -n 1)';
 EOT
-fi
+    fi
 
-if [ ! -f /etc/phpmyadmin/config.user.inc.php ] ; then
-  touch /etc/phpmyadmin/config.user.inc.php
+    if [ ! -f /etc/phpmyadmin/config.user.inc.php ]; then
+        touch /etc/phpmyadmin/config.user.inc.php
+    fi
 fi
 
 if [ ! -z "${HIDE_PHP_VERSION}" ]; then
     echo "PHP version is now hidden."
     echo -e 'expose_php = Off\n' > $PHP_INI_DIR/conf.d/phpmyadmin-hide-php-version.ini
-fi
-
-UPLOAD_LIMIT_INI_FILE="$PHP_INI_DIR/conf.d/phpmyadmin-upload-limit.ini"
-if [ ! -z "${UPLOAD_LIMIT}" ]; then
-    echo "Adding the custom upload limit."
-    echo -e "upload_max_filesize = $UPLOAD_LIMIT\npost_max_size = $UPLOAD_LIMIT\n" > $UPLOAD_LIMIT_INI_FILE
 fi
 
 if [ ! -z "${PMA_CONFIG_BASE64}" ]; then
@@ -32,6 +29,14 @@ if [ ! -z "${PMA_USER_CONFIG_BASE64}" ]; then
     echo "${PMA_USER_CONFIG_BASE64}" | base64 -d > /etc/phpmyadmin/config.user.inc.php
 fi
 
+# start: Apache specific settings
+if [ -n "${APACHE_PORT+x}" ]; then
+    echo "Setting apache port to ${APACHE_PORT}."
+    sed -i "/VirtualHost \*:80/c\\<VirtualHost \*:${APACHE_PORT}\>" /etc/apache2/sites-enabled/000-default.conf
+    sed -i "/Listen 80/c\Listen ${APACHE_PORT}" /etc/apache2/ports.conf
+    apachectl configtest
+fi
+# end: Apache specific settings
 
 get_docker_secret() {
     local env_var="${1}"
@@ -45,13 +50,17 @@ get_docker_secret() {
     fi
 }
 
+get_docker_secret PMA_USER
 get_docker_secret PMA_PASSWORD
 get_docker_secret MYSQL_ROOT_PASSWORD
 get_docker_secret MYSQL_PASSWORD
 get_docker_secret PMA_HOSTS
 get_docker_secret PMA_HOST
+get_docker_secret PMA_CONTROLHOST
+get_docker_secret PMA_CONTROLUSER
+get_docker_secret PMA_CONTROLPASS
 
-
+exec "$@"
 mkdir -p /var/nginx/client_body_temp
 chown nobody:nobody /sessions /var/nginx/client_body_temp
 mkdir -p /var/run/php/
