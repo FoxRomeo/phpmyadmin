@@ -8,6 +8,7 @@ MAINTAINER docker@intrepid.de
 # ENV VERSION 5.0.2
 ENV VERSION <<PHPMYADMINVERSION>>
 ENV URL https://files.phpmyadmin.net/phpMyAdmin/${VERSION}/phpMyAdmin-${VERSION}-all-languages.tar.gz
+LABEL version=$VERSION
 
 # Architecture depending ENV PHP_VERSION provided by Jenkinsfile
 # <<ENV>>
@@ -30,34 +31,33 @@ RUN apk add --no-cache \
     ${PHP_VERSION}-iconv \
     nginx \
     supervisor \
-    bash
+    bash && \
+    rm -rf /etc/php.ini
 
 # Include keyring to verify download
 ADD https://files.phpmyadmin.net/phpmyadmin.keyring /
 # Copy configuration
-RUN rm -rf /etc/php.ini
 COPY etc /etc/
 # Copy main script
 COPY run.sh /run.sh
-RUN chmod u+rwx /run.sh
-LABEL version=$VERSION
+
+RUN chmod u+rwx /run.sh && \
 # Download tarball, verify it using gpg and extract
-RUN set -x \
-    && GNUPGHOME="$(mktemp -d)" \
-    && export GNUPGHOME \
-    && apk add --no-cache curl gnupg \
-    && curl --output phpMyAdmin.tar.gz --location $URL \
-    && apk del --no-cache curl gnupg \
-    && rm -rf "$GNUPGHOME" \
-    && tar xzf phpMyAdmin.tar.gz \
-    && mv phpMyAdmin-$VERSION-all-languages /www \
-    && rm -rf /www/setup/ /www/examples/ /www/test/ /www/po/ /www/composer.json /www/RELEASE-DATE-$VERSION \
-    && sed -i "s@define('CONFIG_DIR'.*@define('CONFIG_DIR', '/etc/phpmyadmin/');@" /www/libraries/vendor_config.php \
-    && chown -R root:nobody /www \
-    && find /www -type d -exec chmod 750 {} \; \
-    && find /www -type f -exec chmod 640 {} \;
+    GNUPGHOME="$(mktemp -d)" && \
+    export GNUPGHOME && \
+    apk add --no-cache curl gnupg && \
+    curl --output phpMyAdmin.tar.gz --location $URL && \
+    apk del --no-cache curl gnupg && \
+    rm -rf "$GNUPGHOME" && \
+    tar xzf phpMyAdmin.tar.gz && \
+    mv phpMyAdmin-$VERSION-all-languages /www && \
+    rm -rf /www/setup/ /www/examples/ /www/test/ /www/po/ /www/composer.json /www/RELEASE-DATE-$VERSION && \
+    sed -i "s@define('CONFIG_DIR'.*@define('CONFIG_DIR', '/etc/phpmyadmin/');@" /www/libraries/vendor_config.php && \
+    chown -R root:nobody /www && \
+    find /www -type d -exec chmod 750 {} \; && \
+    find /www -type f -exec chmod 640 {} \; && \
 # Add directory for sessions to allow session persistence
-RUN mkdir /sessions
+    mkdir /sessions
 
 # add health.sh script
 COPY health.sh /

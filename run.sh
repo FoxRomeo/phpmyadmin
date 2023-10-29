@@ -1,5 +1,5 @@
-
 #!/bin/bash
+
 if [[ "$1" == apache2* ]] || [ "$1" == php-fpm ]; then
 
     if [ ! -f /etc/phpmyadmin/config.secret.inc.php ]; then
