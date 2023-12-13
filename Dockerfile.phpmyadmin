@@ -39,7 +39,7 @@ RUN apk add --no-cache \
 # Include keyring to verify download
 ADD https://files.phpmyadmin.net/phpmyadmin.keyring /
 # Copy configuration
-COPY etc /etc/
+COPY etc/* /etc/
 # Copy main script
 COPY run.sh /run.sh
 
