@@ -58,6 +58,8 @@ RUN chmod u+rwx /run.sh && \
     chown -R root:nobody /www && \
     find /www -type d -exec chmod 750 {} \; && \
     find /www -type f -exec chmod 640 {} \; && \
+    mkdir /var/run ; \
+    chmod 777 /var/run && \
 # Add directory for sessions to allow session persistence
     mkdir /sessions
 
