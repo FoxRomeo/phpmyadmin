@@ -61,7 +61,8 @@ RUN chmod u+rwx /run.sh && \
     mkdir /var/run ; \
     chmod 777 /var/run && \
 # Add directory for sessions to allow session persistence
-    mkdir /sessions
+    mkdir /sessions && \
+    ln -s /etc/phpmyadmin/config.inc.php /www/config.inc.php
 
 # add health.sh script
 COPY health.sh /
