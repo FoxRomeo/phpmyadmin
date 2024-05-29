@@ -15,20 +15,20 @@ LABEL version=$VERSION
 
 # Install dependencies
 RUN apk add --no-cache \
-    ${PHP_VERSION}-session \
-    ${PHP_VERSION}-mysqli \
-    ${PHP_VERSION}-mbstring \
-    ${PHP_VERSION}-xml \
-    ${PHP_VERSION}-gd \
-    ${PHP_VERSION}-zip \
-    ${PHP_VERSION}-bz2 \
-    ${PHP_VERSION}-openssl \
-    ${PHP_VERSION}-curl \
-    ${PHP_VERSION}-opcache \
-    ${PHP_VERSION}-json \
-    ${PHP_VERSION}-ctype \
-    ${PHP_VERSION}-fpm \
-    ${PHP_VERSION}-iconv \
+    php${PHP_VERSION}-session \
+    php${PHP_VERSION}-mysqli \
+    php${PHP_VERSION}-mbstring \
+    php${PHP_VERSION}-xml \
+    php${PHP_VERSION}-gd \
+    php${PHP_VERSION}-zip \
+    php${PHP_VERSION}-bz2 \
+    php${PHP_VERSION}-openssl \
+    php${PHP_VERSION}-curl \
+    php${PHP_VERSION}-opcache \
+    php${PHP_VERSION}-json \
+    php${PHP_VERSION}-ctype \
+    php${PHP_VERSION}-fpm \
+    php${PHP_VERSION}-iconv \
     nginx \
     supervisor \
     bash && \
@@ -55,7 +55,7 @@ RUN chmod u+rwx /run.sh && \
     mv phpMyAdmin-$VERSION-all-languages /www && \
     rm -rf /www/setup/ /www/examples/ /www/test/ /www/po/ /www/composer.json /www/RELEASE-DATE-$VERSION && \
     sed -i "s@define('CONFIG_DIR'.*@define('CONFIG_DIR', '/etc/phpmyadmin/');@" /www/libraries/vendor_config.php && \
-    sed -i "s@^command=/usr/sbin/php-fpm@command=/usr/sbin/${PHP_VERSION}-fpm@" /etc/supervisor.d/php.ini && \
+    sed -i "s@^command=/usr/sbin/php-fpm@command=/usr/sbin/php-fpm${PHP_VERSION}@" /etc/supervisor.d/php.ini && \
     chown -R root:nobody /www && \
     find /www -type d -exec chmod 750 {} \; && \
     find /www -type f -exec chmod 640 {} \; && \
