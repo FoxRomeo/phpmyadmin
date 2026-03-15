@@ -1,5 +1,6 @@
 FROM <<BASECONTAINER>>
-MAINTAINER docker@intrepid.de
+
+LABEL maintainer="docker@intrepid.de"
 
 # Calculate download URL
 # ENV VERSION 4.8+snapshot
