@@ -1,24 +1,24 @@
 FROM <<BASECONTAINER>>
-
 LABEL maintainer="docker@intrepid.de"
 ARG DEBIAN_FRONTEND=noninteractive
 
 # Calculate download URL
-# ENV VERSION 4.8+snapshot
-# ENV URL https://files.phpmyadmin.net/snapshots/phpMyAdmin-${VERSION}-all-languages.tar.gz
+# ENV VERSION=4.8+snapshot
+# ENV URL=https://files.phpmyadmin.net/snapshots/phpMyAdmin-${VERSION}-all-languages.tar.gz
 # or
-# ENV VERSION 5.0.2
-ENV VERSION <<PHPMYADMINVERSION>>
-ENV URL https://files.phpmyadmin.net/phpMyAdmin/${VERSION}/phpMyAdmin-${VERSION}-all-languages.tar.gz
+# ENV VERSION=5.0.2
+ENV VERSION=<<PHPMYADMINVERSION>>
+ENV URL=https://files.phpmyadmin.net/phpMyAdmin/${VERSION}/phpMyAdmin-${VERSION}-all-languages.tar.gz
 LABEL version=$VERSION
 
 # Architecture depending ENV PHP_VERSION provided by Jenkinsfile
+# (Debian-Schreibweise, z. B. "php8.4" - wird als Paketpräfix genutzt)
 # <<ENV>>
 
 # Install dependencies
 RUN apt-get -q update && \
     apt-get -qy upgrade && \
-    apt-get -qy install \
+    apt-get -qy install --no-install-recommends \
       net-tools \
       openssl \
       ca-certificates \
@@ -35,41 +35,52 @@ RUN apt-get -q update && \
       supervisor \
       bash && \
     rm -rf /var/lib/apt/lists/* && \
-    rm -rf /etc/php.ini && \
     mkdir -p /var/nginx /run/php && \
     chown www-data:www-data /var/nginx
 
 # Include keyring to verify download
 ADD https://files.phpmyadmin.net/phpmyadmin.keyring /
-# Copy configuration
-COPY etc /etc
-# Copy main script
-COPY run.sh /run.sh
 
-RUN chmod u+rwx /run.sh && \
+# Copy configuration
+# (Debian-Layout: /etc/supervisor/conf.d/, /etc/php/<ver>/fpm/, /etc/nginx/)
+COPY etc /etc
+
+# Copy main script
+COPY --chmod=755 run.sh /run.sh
+
 # Download tarball, verify it using gpg and extract
+RUN apt-get -q update && \
+    apt-get -qy install --no-install-recommends curl gnupg && \
     GNUPGHOME="$(mktemp -d)" && \
     export GNUPGHOME && \
-    apk add --no-cache curl gnupg && \
-    curl --output phpMyAdmin.tar.gz --location $URL && \
-    apk del --no-cache curl gnupg && \
-    rm -rf "$GNUPGHOME" && \
+    curl --fail --silent --show-error --output phpMyAdmin.tar.gz --location "$URL" && \
+    curl --fail --silent --show-error --output phpMyAdmin.tar.gz.asc --location "$URL.asc" && \
+    gpg --import /phpmyadmin.keyring && \
+    gpg --batch --verify phpMyAdmin.tar.gz.asc phpMyAdmin.tar.gz && \
+    apt-get -qy purge --auto-remove curl gnupg && \
+    rm -rf "$GNUPGHOME" /var/lib/apt/lists/* && \
     tar xzf phpMyAdmin.tar.gz && \
+    rm -f phpMyAdmin.tar.gz phpMyAdmin.tar.gz.asc /phpmyadmin.keyring && \
     mv phpMyAdmin-$VERSION-all-languages /www && \
     rm -rf /www/setup/ /www/examples/ /www/test/ /www/po/ /www/composer.json /www/RELEASE-DATE-$VERSION && \
     sed -i "s@define('CONFIG_DIR'.*@define('CONFIG_DIR', '/etc/phpmyadmin/');@" /www/libraries/vendor_config.php && \
-    sed -i "s@^command=/usr/sbin/php-fpm@command=/usr/sbin/php-fpm${PHP_VERSION}@" /etc/supervisor.d/php.ini && \
-    chown -R root:nobody /www && \
+    # PHP_VERSION = "php8.4" -> Debian-Binary heißt php-fpm8.4
+    PHP_NUM="${PHP_VERSION#php}" && \
+    sed -i "s@^command=/usr/sbin/php-fpm@command=/usr/sbin/php-fpm${PHP_NUM}@" /etc/supervisor/conf.d/php.conf && \
+    # Debian: nginx und php-fpm laufen als www-data (Alpine: nobody)
+    chown -R root:www-data /www && \
     find /www -type d -exec chmod 750 {} \; && \
     find /www -type f -exec chmod 640 {} \; && \
-    mkdir /var/run ; \
-    chmod 777 /var/run && \
-# Add directory for sessions to allow session persistence
+    # Add directory for sessions to allow session persistence
     mkdir /sessions && \
+    chown www-data:www-data /sessions && \
+    chmod 700 /sessions && \
+    # Debian: unnötige Default-Site entfernen (belegt sonst Port 80)
+    rm -f /etc/nginx/sites-enabled/default && \
     ln -s /etc/phpmyadmin/config.inc.php /www/config.inc.php
 
 # add health.sh script
-COPY health.sh /
+COPY --chmod=755 health.sh /health.sh
 # ENV HEALTH_ENABLE=1
 ENV HEALTH_PORT=80
 HEALTHCHECK --start-period=1m --interval=3m --timeout=10s CMD /health.sh
@@ -77,4 +88,3 @@ HEALTHCHECK --start-period=1m --interval=3m --timeout=10s CMD /health.sh
 # We expose phpMyAdmin on port 80
 EXPOSE 80
 ENTRYPOINT [ "/run.sh", "phpmyadmin" ]
-
