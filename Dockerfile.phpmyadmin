@@ -15,24 +15,29 @@ LABEL version=$VERSION
 # <<ENV>>
 
 # Install dependencies
-RUN apk add --no-cache \
-    ${PHP_VERSION}-session \
-    ${PHP_VERSION}-mysqli \
-    ${PHP_VERSION}-mbstring \
-    ${PHP_VERSION}-xml \
-    ${PHP_VERSION}-gd \
-    ${PHP_VERSION}-zip \
-    ${PHP_VERSION}-bz2 \
-    ${PHP_VERSION}-openssl \
-    ${PHP_VERSION}-curl \
-    ${PHP_VERSION}-opcache \
-    ${PHP_VERSION}-json \
-    ${PHP_VERSION}-ctype \
-    ${PHP_VERSION}-fpm \
-    ${PHP_VERSION}-iconv \
-    nginx \
-    supervisor \
-    bash && \
+RUN apt-get -q update && \
+    apt-get -qy upgrade && \
+    apt-get -qy install \
+      net-tools \
+      openssl \
+      ca-certificates \
+      ${PHP_VERSION}-session \
+      ${PHP_VERSION}-mysqli \
+      ${PHP_VERSION}-mbstring \
+      ${PHP_VERSION}-xml \
+      ${PHP_VERSION}-gd \
+      ${PHP_VERSION}-zip \
+      ${PHP_VERSION}-bz2 \
+      ${PHP_VERSION}-openssl \
+      ${PHP_VERSION}-curl \
+      ${PHP_VERSION}-opcache \
+      ${PHP_VERSION}-json \
+      ${PHP_VERSION}-ctype \
+      ${PHP_VERSION}-fpm \
+      ${PHP_VERSION}-iconv \
+      nginx \
+      supervisor \
+      bash && \
     rm -rf /etc/php.ini && \
     mkdir /var/nginx && \
     chown nginx:nginx /var/nginx
