@@ -1,6 +1,7 @@
 FROM <<BASECONTAINER>>
 
 LABEL maintainer="docker@intrepid.de"
+ARG DEBIAN_FRONTEND=noninteractive
 
 # Calculate download URL
 # ENV VERSION 4.8+snapshot
@@ -35,8 +36,8 @@ RUN apt-get -q update && \
       bash && \
     rm -rf /var/lib/apt/lists/* && \
     rm -rf /etc/php.ini && \
-    mkdir /var/nginx && \
-    chown nginx:nginx /var/nginx
+    mkdir -p /var/nginx /run/php && \
+    chown www-data:www-data /var/nginx
 
 # Include keyring to verify download
 ADD https://files.phpmyadmin.net/phpmyadmin.keyring /
