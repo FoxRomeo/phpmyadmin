@@ -73,6 +73,8 @@ RUN apt-get -q update && \
     find /www -type f -exec chmod 640 {} \; && \
     # Add directory for sessions to allow session persistence
     mkdir /sessions && \
+    mkdir -p /var/nginx /run/php && \
+    chown www-data:www-data /var/nginx /run/php && \
     chown www-data:www-data /sessions && \
     chmod 700 /sessions && \
     # Debian: unnötige Default-Site entfernen (belegt sonst Port 80)
